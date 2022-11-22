@@ -1,0 +1,33 @@
+[package]
+name = "autorandr"
+version = "0.1.0"
+edition = "2021"
+
+authors = ["Wayne Warren <wayne.warren.s@gmail.com>"]
+repository = "https://github.com/waynr/autorandr"
+readme = "README.md"
+license = "Apache 2"
+categories = ['command-line-utilities']
+description = "gotta have my dots"
+
+[[bin]]
+name = "autorandr"
+path = "src/main.rs"
+
+[dependencies]
+
+xrandr = "0.1"
+
+sha2 = "0.10"
+hex = "0.4"
+
+# logging
+log = "0.4"
+pretty_env_logger = "0.4"
+
+# error handling
+anyhow = "1.0"
+thiserror = "1.0"
+
+# command-line-utilities
+clap = "4.0"
