@@ -1,90 +1,10 @@
-use std::collections::{BTreeMap, HashMap};
 use std::process::Command;
 
 use clap;
-use sha2::{Digest, Sha256};
-use xrandr::{Output, PropertyValue, XHandle};
+use xrandr::XHandle;
 
 use autorandr::Result;
-
-enum DeviceKind {
-    Laptop,
-    Monitor,
-    Unknown,
-}
-
-// A device representation.
-struct Monitor {
-    name: String,
-    output_name: Option<String>,
-    edid_digest: Option<Vec<u8>>,
-    kind: DeviceKind,
-    xrandr_fields: BTreeMap<String, String>,
-}
-
-impl From<&Output> for Monitor {
-    fn from(o: &Output) -> Monitor {
-        Monitor {
-            name: "".into(),
-            output_name: Some(String::from(o.name.clone())),
-            edid_digest: match o.properties.get("EDID") {
-                Some(p) => match &p.value {
-                    PropertyValue::Edid(v) => {
-                        let mut hasher = Sha256::new();
-                        hasher.update(v);
-                        let digest = hasher.finalize().to_vec();
-                        log::info!("{:?}", digest);
-                        Some(digest)
-                    }
-                    _ => None,
-                },
-                None => None,
-            },
-            kind: DeviceKind::Unknown,
-            xrandr_fields: BTreeMap::new(),
-        }
-    }
-}
-
-// Representation of a knwown collection of devices.
-struct Profile<'a> {
-    name: String,
-    device: BTreeMap<String, &'a Monitor>,
-}
-
-fn known_profiles<'a>() -> Result<BTreeMap<String, Profile<'a>>> {
-    return Ok(BTreeMap::new());
-}
-
-fn known_monitors() -> Result<HashMap<String, Monitor>> {
-    Ok(HashMap::from([
-        (
-            "left-monitor".into(),
-            Monitor {
-                name: "left-monitor".into(),
-                edid_digest: Some(hex::decode(
-                    "020d8c7e6dd847d2296b1706d96a75bd939a2b8db86687916fa4d5063da096fe",
-                )?),
-                output_name: None,
-                kind: DeviceKind::Monitor,
-                xrandr_fields: BTreeMap::from([("--rotate", "normal"), ("--dpi", "192")].map(|(k, v)| (String::from(k), String::from(v)))),
-            },
-        ),
-        (
-            "right-monitor".into(),
-            Monitor {
-                name: "right-monitor".into(),
-                edid_digest: Some(hex::decode(
-                    "fc4693d8e06355a504397b5ef480fc29930192606637e3b1ae2c5226b3f0befd",
-                )?),
-                output_name: None,
-                kind: DeviceKind::Monitor,
-                xrandr_fields: BTreeMap::from([("--rotate", "normal"), ("--dpi", "192")].map(|(k, v)| (String::from(k), String::from(v)))),
-            },
-        ),
-        // TODO:
-    ]))
-}
+use autorandr::Monitor;
 
 fn list() -> Result<clap::Command> {
     Ok(clap::Command::new("list").about("list profiles and displays"))
@@ -142,7 +62,6 @@ fn main() -> Result<()> {
 
     let outputs = XHandle::open()?.all_outputs()?;
 
-    let known_monitors = known_monitors()?;
     for output in outputs {
         match output.properties.get("EDID") {
             Some(_) => {
