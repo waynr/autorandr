@@ -1,4 +1,3 @@
-use std::collections::BTreeMap;
 use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
@@ -15,7 +14,6 @@ pub struct Monitor {
     pub name: String,
     pub output_name: Option<String>,
     pub edid_digest: Option<Vec<u8>>,
-    pub xrandr_fields: BTreeMap<String, String>,
 }
 
 impl From<&Output> for Monitor {
@@ -36,7 +34,6 @@ impl From<&Output> for Monitor {
                 },
                 None => None,
             },
-            xrandr_fields: BTreeMap::new(),
         }
     }
 }
