@@ -2,9 +2,9 @@ use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 
-use sha2::{Digest, Sha256};
 use xrandr::{Output, PropertyValue};
 use serde::{Deserialize, Serialize};
+use hex::encode;
 
 use crate::errors::{Error, Result};
 
@@ -13,28 +13,26 @@ use crate::errors::{Error, Result};
 pub struct Monitor {
     pub name: String,
     pub output_name: Option<String>,
-    pub edid_digest: Option<Vec<u8>>,
+    pub edid: Option<String>,
 }
 
-impl From<&Output> for Monitor {
-    fn from(o: &Output) -> Monitor {
-        Monitor {
+impl TryFrom<&Output> for Monitor {
+    type Error = Error;
+
+    fn try_from(o: &Output) -> Result<Monitor> {
+        Ok(Monitor {
             name: "".into(),
             output_name: Some(String::from(o.name.clone())),
-            edid_digest: match o.properties.get("EDID") {
+            edid: match o.properties.get("EDID") {
                 Some(p) => match &p.value {
                     PropertyValue::Edid(v) => {
-                        let mut hasher = Sha256::new();
-                        hasher.update(v);
-                        let digest = hasher.finalize().to_vec();
-                        log::info!("{:?}", digest);
-                        Some(digest)
+                        Some(encode(v))
                     }
                     _ => None,
                 },
                 None => None,
             },
-        }
+        })
     }
 }
 

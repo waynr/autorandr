@@ -1,10 +1,6 @@
-use std::process::Command;
-
 use clap;
-use xrandr::XHandle;
 
-use autorandr::Result;
-use autorandr::Monitor;
+use autorandr::{Config, Manager, Result};
 
 fn list() -> Result<clap::Command> {
     Ok(clap::Command::new("list").about("list profiles and displays"))
@@ -45,52 +41,11 @@ fn main() -> Result<()> {
     }
 
     logger_builder.try_init()?;
-    //log::debug!("verbosity set to {0}", level);
-    let mut active: Vec<Monitor> = Vec::new();
-    let mut connected: Vec<Monitor> = Vec::new();
-    let mut disconnected: Vec<Monitor> = Vec::new();
+    log::debug!("verbosity set to {0}", level);
 
-    log::info!("outputs");
-    let monitors = XHandle::open()?.monitors()?;
-
-    for monitor in &monitors {
-        for output in &monitor.outputs {
-            log::info!("active: {0}", output.name);
-            active.push(output.into());
-        }
-    }
-
-    let outputs = XHandle::open()?.all_outputs()?;
-
-    for output in outputs {
-        match output.properties.get("EDID") {
-            Some(_) => {
-                let monitor: Monitor = (&output).into();
-                connected.push(monitor);
-            }
-            None => {
-                disconnected.push((&output).into());
-            }
-        }
-    }
-    log::info!("connected:");
-    for monitor in connected {
-        log::info!(" {:?}", monitor.output_name);
-    }
-    log::debug!("disconnected:");
-    for monitor in &disconnected {
-        log::debug!(" {:?}", monitor.output_name);
-    }
-
-    let mut cmd = Command::new("xrandr");
-    for monitor in &disconnected {
-        match &monitor.output_name {
-            Some(name) => {
-                let _ = cmd.arg("--output").arg(&name).arg("--off");
-            }
-            None => (),
-        };
-    }
+    let cfg = Config::load()?;
+    let mgr = Manager::from(cfg).detect()?;
+    mgr.list();
 
     Ok(())
 }

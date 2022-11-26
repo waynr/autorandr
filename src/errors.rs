@@ -1,6 +1,7 @@
 use std::io;
 use std::convert::Infallible;
 use std::path::PathBuf;
+use std::string;
 
 use thiserror::Error;
 use xrandr;
@@ -31,6 +32,10 @@ pub enum Error {
     /// Yaml serialization/deserialization failiure.
     #[error("failed to serialize (or deserialize): {0}")]
     SerdeYamlError(#[from] serde_yaml::Error),
+
+    /// Error converting Vec<u8> to String using from_utf8 method.
+    #[error("")]
+    StdFromUtf8Error(#[from] string::FromUtf8Error),
 
     #[error("cannot determine configuration directory on this platform")]
     CannotDetermineConfigDir,
