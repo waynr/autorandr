@@ -1,13 +1,15 @@
 use clap;
 
-use autorandr::{Config, Manager, Result};
+use anyhow::{anyhow, Result};
 
-fn list() -> Result<clap::Command> {
-    Ok(clap::Command::new("list").about("list profiles and displays"))
+use autorandr::{Config, Manager};
+
+fn list(mgr: Manager, _: &clap::ArgMatches) -> Result<()> {
+    mgr.list();
+    Ok(())
 }
 
-fn cli() -> Result<clap::ArgMatches> {
-    let list = list()?;
+fn cli() -> Result<clap::Command> {
     Ok(clap::Command::new("autorandr")
         .author("wayne warren")
         .version("0.0.1")
@@ -16,16 +18,17 @@ fn cli() -> Result<clap::ArgMatches> {
             .short('v')
             .help("verbosity")
             .action(clap::ArgAction::Count)])
-        .subcommands(vec![list])
-        .get_matches())
+        .subcommands(vec![
+            clap::Command::new("list").about("list active, connected, and disconnected outputs")
+        ]))
 }
 
 fn main() -> Result<()> {
-    let matches = cli()?;
+    let cmd = &mut cli()?;
+    let matches = cmd.get_matches_mut();
     let mut logger_builder = &mut pretty_env_logger::formatted_builder();
 
-    let verbosity = matches.get_one::<u8>("verbose").copied();
-    let level = match verbosity {
+    let level = match matches.get_one::<u8>("verbose").copied() {
         Some(0) => log::LevelFilter::Info,
         Some(1) => log::LevelFilter::Debug,
         Some(_) => log::LevelFilter::Trace,
@@ -45,7 +48,20 @@ fn main() -> Result<()> {
 
     let cfg = Config::load()?;
     let mgr = Manager::from(cfg).detect()?;
-    mgr.list();
 
-    Ok(())
+    match matches.subcommand() {
+        Some(("list", subm)) => {
+            list(mgr, subm)
+        }
+        Some((c, _)) => {
+            println!("{}", cmd.render_usage());
+            println!("{}", cmd.render_long_help());
+            Err(anyhow!("invalid subcommand {}", c))
+        }
+        None => {
+            println!("{}", cmd.render_usage());
+            println!("{}", cmd.render_long_help());
+            Err(anyhow!("missing subcommand"))
+        }
+    }
 }
