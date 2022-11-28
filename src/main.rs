@@ -9,6 +9,11 @@ fn list(mgr: Manager, _: &clap::ArgMatches) -> Result<()> {
     Ok(())
 }
 
+fn reconcile(mgr: Manager, _: &clap::ArgMatches) -> Result<()> {
+    mgr.reconcile()?;
+    Ok(())
+}
+
 fn cli() -> Result<clap::Command> {
     Ok(clap::Command::new("autorandr")
         .author("wayne warren")
@@ -19,7 +24,8 @@ fn cli() -> Result<clap::Command> {
             .help("verbosity")
             .action(clap::ArgAction::Count)])
         .subcommands(vec![
-            clap::Command::new("list").about("list active, connected, and disconnected outputs")
+            clap::Command::new("list").about("list active, connected, and disconnected outputs"),
+            clap::Command::new("reconcile").about("automatically choose from available profiles based on avaliable monitors"),
         ]))
 }
 
@@ -52,6 +58,9 @@ fn main() -> Result<()> {
     match matches.subcommand() {
         Some(("list", subm)) => {
             list(mgr, subm)
+        }
+        Some(("reconcile", subm)) => {
+            reconcile(mgr, subm)
         }
         Some((c, _)) => {
             println!("{}", cmd.render_usage());

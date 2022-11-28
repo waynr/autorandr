@@ -1,4 +1,5 @@
-use std::collections::BTreeMap;
+use std::cmp::Ordering;
+use std::collections::{BTreeMap, HashSet};
 use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
@@ -10,23 +11,30 @@ use crate::errors::{Error, Result};
 use crate::monitor::Monitor;
 
 /// Representation of a known collection of devices.
-#[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Deserialize, Serialize, Eq, PartialEq)]
 pub struct Profile {
     name: String,
-    monitors: BTreeMap<String, Monitor>,
-    available: bool,
+    pub(crate) monitors: BTreeMap<String, Monitor>,
+
+    #[serde(skip)]
+    set: HashSet<String>,
 }
 
+// public methods
 impl Profile {
-    pub fn load_all() -> BTreeMap<String, Profile> {
-        BTreeMap::new()
+    pub fn is_available(&self, available_edids: &HashSet<String>) -> bool {
+        log::debug!("{:?}", self.set);
+        self.set.is_subset(available_edids)
     }
+}
 
-    pub fn load() -> Profile {
-        Profile {
-            name: String::from(""),
-            monitors: BTreeMap::new(),
-            available: false,
+// private methods
+impl Profile {
+    fn init_set(&mut self) {
+        for (_, monitor) in &self.monitors {
+            if let Some(edid) = &monitor.edid {
+                self.set.insert(edid.clone());
+            }
         }
     }
 }
@@ -41,11 +49,24 @@ impl TryFrom<fs::DirEntry> for Profile {
                 let mut file = fs::File::open(path)?;
                 let mut contents = String::new();
                 let _ = file.read_to_string(&mut contents)?;
-                let c: Self = serde_yaml::from_str(&contents)?;
-                Ok(c)
-            },
+                let mut p: Self = serde_yaml::from_str(&contents)?;
+                p.init_set();
+                Ok(p)
+            }
             _ => Err(Error::UnrecognizedProfileConfigFile(path)),
         }
+    }
+}
+
+impl Ord for Profile {
+    fn cmp(&self, other: &Self) -> Ordering {
+        self.name.cmp(&other.name)
+    }
+}
+
+impl PartialOrd for Profile {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        Some(self.cmp(other))
     }
 }
 
@@ -58,12 +79,18 @@ pub struct Config {
 impl Config {
     pub fn load() -> Result<Config> {
         let mut profiles = fs::read_dir(Config::profiles_dir()?)?
-            .filter_map(|entry| match entry {
-                Ok(e) => match e.try_into() {
-                    Ok(e) => Some(e),
+            .filter_map(|entry| {
+                log::debug!("{:?}", entry);
+                match entry {
+                    Ok(e) => match e.try_into() {
+                        Ok(e) => Some(e),
+                        Err(e) => {
+                            log::debug!("{:?}", e);
+                            None
+                        }
+                    },
                     _ => None,
-                },
-                _ => None,
+                }
             })
             .collect::<Vec<Profile>>();
 
