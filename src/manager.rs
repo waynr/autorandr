@@ -2,9 +2,9 @@ use std::collections::{HashMap, HashSet};
 use std::str;
 
 use subprocess::{Exec, ExitStatus, Redirection};
-use xrandr::XHandle;
 
 use crate::{Config, Error, Monitor, Result};
+use crate::xhandle::XHandleWrapper;
 
 pub struct Manager {
     config: Config,
@@ -25,7 +25,7 @@ impl Manager {
     }
 
     pub fn detect(mut self) -> Result<Self> {
-        let mut handle = XHandle::open()?;
+        let mut handle = XHandleWrapper::open()?;
 
         self.active = HashMap::new();
         self.connected = HashMap::new();
