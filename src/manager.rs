@@ -4,15 +4,15 @@ use std::str;
 use subprocess::{Exec, ExitStatus, Redirection};
 
 use crate::xhandle::XHandleWrapper;
-use crate::{Config, Error, Monitor, Result};
+use crate::{Config, Error, Output, Result};
 
 pub struct Manager {
     config: Config,
     xhandle: XHandleWrapper,
 
-    active: HashMap<String, Monitor>,
-    connected: HashMap<String, Monitor>,
-    disconnected: Vec<Monitor>,
+    active: HashMap<String, Output>,
+    connected: HashMap<String, Output>,
+    disconnected: Vec<Output>,
 }
 
 impl Manager {
@@ -58,34 +58,34 @@ impl Manager {
     pub fn list(&self) {
         if self.active.len() > 0 {
             log::info!("connected (active):");
-            for (_, monitor) in &self.active {
-                log::info!(" name: {0}", monitor.output_name.as_ref().unwrap());
-                log::info!(" edid: {0}", monitor.edid.as_ref().unwrap());
+            for (_, output) in &self.active {
+                log::info!(" name: {0}", output.output_name.as_ref().unwrap());
+                log::info!(" edid: {0}", output.edid.as_ref().unwrap());
             }
         }
 
         if self.connected.len() > 0 {
             log::info!("");
             log::info!("connected (inactive):");
-            for (_, monitor) in &self.connected {
-                log::info!(" name: {}", monitor.output_name.as_ref().unwrap());
-                log::info!(" edid: {0}", monitor.edid.as_ref().unwrap());
+            for (_, output) in &self.connected {
+                log::info!(" name: {}", output.output_name.as_ref().unwrap());
+                log::info!(" edid: {0}", output.edid.as_ref().unwrap());
             }
         }
 
         if self.disconnected.len() > 0 {
             log::info!("");
             log::info!("disconnected:");
-            for monitor in &self.disconnected {
-                log::info!(" name: {}", monitor.output_name.as_ref().unwrap());
+            for output in &self.disconnected {
+                log::info!(" name: {}", output.output_name.as_ref().unwrap());
             }
         }
     }
 
     pub fn reconcile(&self) -> Result<()> {
         let mut cmd = Exec::cmd("xrandr").stderr(Redirection::Merge);
-        for monitor in &self.disconnected {
-            match &monitor.output_name {
+        for output in &self.disconnected {
+            match &output.output_name {
                 Some(name) => {
                     cmd = cmd.arg("--output").arg(&name).arg("--off");
                 }
@@ -105,11 +105,11 @@ impl Manager {
         for profile in &self.config.profiles {
             log::trace!("meow2");
             if profile.is_available(&available) {
-                for (_, profile_monitor) in &profile.monitors {
+                for (_, profile_output) in &profile.outputs {
                     log::trace!("meow");
-                    let monitor = match (
-                        self.active.get(profile_monitor.edid.as_ref().unwrap()),
-                        self.connected.get(profile_monitor.edid.as_ref().unwrap()),
+                    let output = match (
+                        self.active.get(profile_output.edid.as_ref().unwrap()),
+                        self.connected.get(profile_output.edid.as_ref().unwrap()),
                     ) {
                         (Some(m), None) => m,
                         (None, Some(m)) => m,
@@ -120,16 +120,16 @@ impl Manager {
                         }
                         (None, None) => {
                             // we shouldn't be able to reach this point since the
-                            // profile_monitor.edid is confirmed to be among the `available` edids
+                            // profile_output.edid is confirmed to be among the `available` edids
                             // in the profile.is_available() method
                             unreachable!("meow");
                         }
                     };
                     cmd = cmd
                         .arg("--output")
-                        .arg(monitor.output_name.as_ref().unwrap());
-                    log::debug!("{:?}", profile_monitor.get_args());
-                    cmd = cmd.args(&profile_monitor.get_args());
+                        .arg(output.output_name.as_ref().unwrap());
+                    log::debug!("{:?}", profile_output.get_args());
+                    cmd = cmd.args(&profile_output.get_args());
                 }
                 break;
             }

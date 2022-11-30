@@ -8,13 +8,13 @@ use dirs::config_dir;
 use serde::{Deserialize, Serialize};
 
 use crate::errors::{Error, Result};
-use crate::monitor::Monitor;
+use crate::output::Output;
 
 /// Representation of a known collection of devices.
 #[derive(Deserialize, Serialize, Eq, PartialEq)]
 pub struct Profile {
     name: String,
-    pub(crate) monitors: BTreeMap<String, Monitor>,
+    pub(crate) outputs: BTreeMap<String, Output>,
 
     #[serde(skip)]
     set: HashSet<String>,
@@ -31,8 +31,8 @@ impl Profile {
 // private methods
 impl Profile {
     fn init_set(&mut self) {
-        for (_, monitor) in &self.monitors {
-            if let Some(edid) = &monitor.edid {
+        for (_, output) in &self.outputs {
+            if let Some(edid) = &output.edid {
                 self.set.insert(edid.clone());
             }
         }
@@ -70,10 +70,10 @@ impl PartialOrd for Profile {
     }
 }
 
-/// Config contains profiles (in order of preference) and known monitors.
+/// Config contains profiles (in order of preference) and known outputs.
 pub struct Config {
     pub profiles: Vec<Profile>,
-    pub monitors: Vec<Monitor>,
+    pub outputs: Vec<Output>,
 }
 
 impl Config {
@@ -94,7 +94,7 @@ impl Config {
             })
             .collect::<Vec<Profile>>();
 
-        let mut monitors = fs::read_dir(Config::monitors_dir()?)?
+        let mut outputs = fs::read_dir(Config::outputs_dir()?)?
             .filter_map(|entry| match entry {
                 Ok(e) => match e.try_into() {
                     Ok(e) => Some(e),
@@ -102,12 +102,12 @@ impl Config {
                 },
                 _ => None,
             })
-            .collect::<Vec<Monitor>>();
+            .collect::<Vec<Output>>();
 
         profiles.sort();
-        monitors.sort();
+        outputs.sort();
 
-        Ok(Config { profiles, monitors })
+        Ok(Config { profiles, outputs })
     }
 
     fn profiles_dir() -> Result<PathBuf> {
@@ -120,11 +120,11 @@ impl Config {
         Ok(dir)
     }
 
-    fn monitors_dir() -> Result<PathBuf> {
+    fn outputs_dir() -> Result<PathBuf> {
         let dir = config_dir()
             .ok_or(Error::CannotDetermineConfigDir)?
             .join("autorandr")
-            .join("monitors");
+            .join("outputs");
         fs::create_dir_all(&dir)?;
 
         Ok(dir)

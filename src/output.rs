@@ -5,27 +5,22 @@ use std::path::PathBuf;
 
 use hex::encode;
 use serde::{Deserialize, Serialize};
-use xrandr::{Output, PropertyValue};
+use xrandr::{Output as XRandrOutput, PropertyValue};
 
 use crate::errors::{Error, Result};
 
-#[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
-pub enum MonitorKind {
-    Laptop,
-    External,
-    Unknown,
-}
-
 /// A display device representation.
 #[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
-pub struct Monitor {
-    pub kind: MonitorKind,
+pub struct Output {
     pub output_name: Option<String>,
+    // TODO: make edid value an enum with variants that allow for multiple possible monitors in
+    // profiles (allows a profile with some fixed screens, some dynamic -- eg, the position of one
+    // output could be one of multiple outputs)
     pub edid: Option<String>,
     pub xrandr_args: BTreeMap<String, String>,
 }
 
-impl Monitor {
+impl Output {
     pub fn get_args(&self) -> Vec<String> {
         self
             .xrandr_args
@@ -36,12 +31,11 @@ impl Monitor {
     }
 }
 
-impl TryFrom<&Output> for Monitor {
+impl TryFrom<&XRandrOutput> for Output {
     type Error = Error;
 
-    fn try_from(o: &Output) -> Result<Monitor> {
-        Ok(Monitor {
-            kind: MonitorKind::Unknown,
+    fn try_from(o: &XRandrOutput) -> Result<Output> {
+        Ok(Output {
             output_name: Some(String::from(o.name.clone())),
             edid: match o.properties.get("EDID") {
                 Some(p) => match &p.value {
@@ -55,10 +49,10 @@ impl TryFrom<&Output> for Monitor {
     }
 }
 
-impl TryFrom<fs::DirEntry> for Monitor {
+impl TryFrom<fs::DirEntry> for Output {
     type Error = Error;
 
-    fn try_from(de: fs::DirEntry) -> Result<Monitor> {
+    fn try_from(de: fs::DirEntry) -> Result<Output> {
         let path: PathBuf = de.path().into();
         match path.extension() {
             Some(ext) if ext == "yaml" || ext == "yml" => {

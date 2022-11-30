@@ -1,6 +1,6 @@
 use xrandr::XHandle;
 
-use crate::{Monitor, Result};
+use crate::{Output, Result};
 
 #[cfg_attr(test, faux::create)]
 pub(crate) struct XHandleWrapper(XHandle);
@@ -13,21 +13,21 @@ impl XHandleWrapper {
 
 #[cfg_attr(test, faux::methods)]
 impl XHandleWrapper {
-    pub fn active_outputs(&mut self) -> Result<Vec<Monitor>> {
+    pub fn active_outputs(&mut self) -> Result<Vec<Output>> {
         Ok(self
             .0
             .monitors()?
             .iter()
-            .flat_map(|xmonitor| xmonitor.outputs.iter().map(|xoutput| xoutput.try_into()))
-            .collect::<Result<Vec<Monitor>>>()?)
+            .flat_map(|m| m.outputs.iter().map(|xoutput| xoutput.try_into()))
+            .collect::<Result<Vec<Output>>>()?)
     }
 
-    pub fn inactive_outputs(&mut self) -> Result<Vec<Monitor>> {
+    pub fn inactive_outputs(&mut self) -> Result<Vec<Output>> {
         Ok(self
             .0
             .all_outputs()?
             .iter()
-            .map(|xoutput| xoutput.try_into())
-            .collect::<Result<Vec<Monitor>>>()?)
+            .map(|o| o.try_into())
+            .collect::<Result<Vec<Output>>>()?)
     }
 }
