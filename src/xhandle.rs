@@ -18,8 +18,8 @@ impl XHandleWrapper {
             .0
             .monitors()?
             .iter()
-            .flat_map(|m| m.outputs.iter().map(|xoutput| xoutput.try_into()))
-            .collect::<Result<Vec<Output>>>()?)
+            .flat_map(|m| m.outputs.iter().map(|xoutput| xoutput.into()))
+            .collect::<Vec<Output>>())
     }
 
     pub fn inactive_outputs(&mut self) -> Result<Vec<Output>> {
@@ -27,7 +27,7 @@ impl XHandleWrapper {
             .0
             .all_outputs()?
             .iter()
-            .map(|o| o.try_into())
-            .collect::<Result<Vec<Output>>>()?)
+            .map(|o| o.into())
+            .collect::<Vec<Output>>())
     }
 }

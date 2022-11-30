@@ -1,13 +1,8 @@
 use std::collections::BTreeMap;
-use std::fs;
-use std::io::Read;
-use std::path::PathBuf;
 
 use hex::encode;
 use serde::{Deserialize, Serialize};
 use xrandr::{Output as XRandrOutput, PropertyValue};
-
-use crate::errors::{Error, Result};
 
 /// A display device representation.
 #[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
@@ -30,11 +25,9 @@ impl Output {
     }
 }
 
-impl TryFrom<&XRandrOutput> for Output {
-    type Error = Error;
-
-    fn try_from(o: &XRandrOutput) -> Result<Output> {
-        Ok(Output {
+impl From<&XRandrOutput> for Output {
+    fn from(o: &XRandrOutput) -> Output {
+        Output {
             output_name: Some(String::from(o.name.clone())),
             edid: match o.properties.get("EDID") {
                 Some(p) => match &p.value {
@@ -44,6 +37,6 @@ impl TryFrom<&XRandrOutput> for Output {
                 None => None,
             },
             xrandr_args: BTreeMap::new(),
-        })
+        }
     }
 }
