@@ -3,11 +3,12 @@ use std::str;
 
 use subprocess::{Exec, ExitStatus, Redirection};
 
-use crate::{Config, Error, Monitor, Result};
 use crate::xhandle::XHandleWrapper;
+use crate::{Config, Error, Monitor, Result};
 
 pub struct Manager {
     config: Config,
+    xhandle: XHandleWrapper,
 
     active: HashMap<String, Monitor>,
     connected: HashMap<String, Monitor>,
@@ -15,42 +16,37 @@ pub struct Manager {
 }
 
 impl Manager {
-    pub fn from(config: Config) -> Self {
-        Manager {
+    pub fn from(config: Config) -> Result<Self> {
+        Ok(Manager {
             config,
+            xhandle: XHandleWrapper::open()?,
             active: HashMap::new(),
             connected: HashMap::new(),
             disconnected: Vec::new(),
-        }
+        })
     }
 
     pub fn detect(mut self) -> Result<Self> {
-        let mut handle = XHandleWrapper::open()?;
-
         self.active = HashMap::new();
         self.connected = HashMap::new();
         self.disconnected = Vec::new();
 
-        for monitor in handle.monitors()? {
-            for output in &monitor.outputs {
-                let m: Monitor = output.try_into()?;
-                if let Some(edid) = &m.edid {
-                    self.active.insert(edid.to_string(), m);
-                }
+        for o in self.xhandle.active_outputs()? {
+            if let Some(edid) = &o.edid {
+                self.active.insert(edid.to_string(), o);
             }
         }
 
-        for output in &handle.all_outputs()? {
-            let m: Monitor = output.try_into()?;
-            match (&m.output_name, &m.edid) {
+        for o in self.xhandle.inactive_outputs()? {
+            match (&o.output_name, &o.edid) {
                 (Some(_), Some(edid)) => {
                     if self.active.contains_key(edid) {
                         continue;
                     }
-                    self.connected.insert(edid.to_string(), m);
+                    self.connected.insert(edid.to_string(), o);
                 }
                 (Some(_), None) => {
-                    self.disconnected.push(m);
+                    self.disconnected.push(o);
                 }
                 (_, _) => continue,
             }

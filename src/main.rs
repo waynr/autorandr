@@ -53,7 +53,7 @@ fn main() -> Result<()> {
     log::debug!("verbosity set to {0}", level);
 
     let cfg = Config::load()?;
-    let mgr = Manager::from(cfg).detect()?;
+    let mgr = Manager::from(cfg)?.detect()?;
 
     match matches.subcommand() {
         Some(("list", subm)) => {
