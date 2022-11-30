@@ -73,7 +73,6 @@ impl PartialOrd for Profile {
 /// Config contains profiles (in order of preference) and known outputs.
 pub struct Config {
     pub profiles: Vec<Profile>,
-    pub outputs: Vec<Output>,
 }
 
 impl Config {
@@ -94,20 +93,9 @@ impl Config {
             })
             .collect::<Vec<Profile>>();
 
-        let mut outputs = fs::read_dir(Config::outputs_dir()?)?
-            .filter_map(|entry| match entry {
-                Ok(e) => match e.try_into() {
-                    Ok(e) => Some(e),
-                    _ => None,
-                },
-                _ => None,
-            })
-            .collect::<Vec<Output>>();
-
         profiles.sort();
-        outputs.sort();
 
-        Ok(Config { profiles, outputs })
+        Ok(Config { profiles })
     }
 
     fn profiles_dir() -> Result<PathBuf> {
@@ -115,16 +103,6 @@ impl Config {
             .ok_or(Error::CannotDetermineConfigDir)?
             .join("autorandr")
             .join("profiles");
-        fs::create_dir_all(&dir)?;
-
-        Ok(dir)
-    }
-
-    fn outputs_dir() -> Result<PathBuf> {
-        let dir = config_dir()
-            .ok_or(Error::CannotDetermineConfigDir)?
-            .join("autorandr")
-            .join("outputs");
         fs::create_dir_all(&dir)?;
 
         Ok(dir)

@@ -22,8 +22,7 @@ pub struct Output {
 
 impl Output {
     pub fn get_args(&self) -> Vec<String> {
-        self
-            .xrandr_args
+        self.xrandr_args
             .iter()
             .map(|(k, v)| [k.clone(), v.clone()])
             .flat_map(|s| s)
@@ -46,23 +45,5 @@ impl TryFrom<&XRandrOutput> for Output {
             },
             xrandr_args: BTreeMap::new(),
         })
-    }
-}
-
-impl TryFrom<fs::DirEntry> for Output {
-    type Error = Error;
-
-    fn try_from(de: fs::DirEntry) -> Result<Output> {
-        let path: PathBuf = de.path().into();
-        match path.extension() {
-            Some(ext) if ext == "yaml" || ext == "yml" => {
-                let mut file = fs::File::open(path)?;
-                let mut contents = String::new();
-                let _ = file.read_to_string(&mut contents)?;
-                let c: Self = serde_yaml::from_str(&contents)?;
-                Ok(c)
-            }
-            _ => Err(Error::UnrecognizedProfileConfigFile(path)),
-        }
     }
 }
