@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use xrandr::{Output as XRandrOutput, PropertyValue};
 
 /// A display device representation.
-#[derive(Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
+#[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
 pub struct Output {
     pub output_name: Option<String>,
     // TODO: make edid value an enum with variants that allow for multiple possible monitors in
@@ -38,5 +38,39 @@ impl From<&XRandrOutput> for Output {
             },
             xrandr_args: BTreeMap::new(),
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    use indexmap::IndexMap;
+    use xrandr::{Output as XOutput, Property, PropertyValue};
+
+    #[test]
+    fn convert_xrandr_output_to_autorandr_output() {
+        let edid: Vec<u8> = Vec::from([0]);
+        let xo = &XOutput {
+            xid: 0,
+            name: "MEOW-1".into(),
+            properties: IndexMap::from([(
+                "EDID".into(),
+                Property {
+                    name: "EDID".into(),
+                    value: PropertyValue::Edid(edid),
+                    values: None,
+                    is_immutable: true,
+                    is_pending: false,
+                },
+            )]),
+        };
+        let expected = Output {
+            output_name: Some(xo.name.clone()),
+            edid: Some("00".into()),
+            xrandr_args: BTreeMap::new(),
+        };
+        let actual: Output = xo.into();
+        assert_eq!(expected, actual);
     }
 }
