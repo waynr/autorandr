@@ -82,6 +82,13 @@ impl Manager {
         }
     }
 
+    pub fn profiles(&self) {
+        log::info!("available profiles:");
+        for profile in &self.config.profiles {
+            log::info!("{0}", profile);
+        }
+    }
+
     pub fn reconcile(&self) -> Result<()> {
         let mut cmd = Exec::cmd("xrandr").stderr(Redirection::Merge);
         for output in &self.disconnected {

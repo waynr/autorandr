@@ -1,6 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
 use std::fs;
+use std::fmt;
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -70,6 +71,17 @@ impl PartialOrd for Profile {
     }
 }
 
+impl fmt::Display for Profile {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        write!(f, "{}\n", self.name)?;
+        for (name, output) in &self.outputs {
+            write!(f, "{}\n", name)?;
+            write!(f, "{}", output)?;
+        }
+        Ok(())
+    }
+}
+
 /// Config contains profiles (in order of preference) and known outputs.
 pub struct Config {
     pub profiles: Vec<Profile>,
@@ -84,7 +96,7 @@ impl Config {
                     Ok(e) => match e.try_into() {
                         Ok(e) => Some(e),
                         Err(e) => {
-                            log::debug!("{:?}", e);
+                            log::warn!("{:?}", e);
                             None
                         }
                     },

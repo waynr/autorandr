@@ -1,4 +1,5 @@
 use std::collections::BTreeMap;
+use std::fmt;
 
 use hex::encode;
 use serde::{Deserialize, Serialize};
@@ -12,16 +13,19 @@ pub struct Output {
     // profiles (allows a profile with some fixed screens, some dynamic -- eg, the position of one
     // output could be one of multiple outputs)
     pub edid: Option<String>,
-    pub xrandr_args: BTreeMap<String, String>,
+    pub xrandr_args: Option<BTreeMap<String, String>>,
 }
 
 impl Output {
     pub fn get_args(&self) -> Vec<String> {
-        self.xrandr_args
-            .iter()
-            .map(|(k, v)| [k.clone(), v.clone()])
-            .flat_map(|s| s)
-            .collect()
+        if let Some(args) = &self.xrandr_args {
+            args.iter()
+                .map(|(k, v)| [k.clone(), v.clone()])
+                .flat_map(|s| s)
+                .collect()
+        } else {
+            Vec::new()
+        }
     }
 }
 
@@ -36,8 +40,19 @@ impl From<&XRandrOutput> for Output {
                 },
                 None => None,
             },
-            xrandr_args: BTreeMap::new(),
+            xrandr_args: Some(BTreeMap::new()),
         }
+    }
+}
+
+impl fmt::Display for Output {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        if let Some(args) = &self.xrandr_args {
+            for (arg, value) in args {
+                write!(f, "  {0} = {1}\n", arg, value)?;
+            }
+        }
+        Ok(())
     }
 }
 
