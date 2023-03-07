@@ -110,10 +110,8 @@ impl Manager {
         }
 
         for profile in &self.config.profiles {
-            log::trace!("meow2");
             if profile.is_available(&available) {
                 for (_, profile_output) in &profile.outputs {
-                    log::trace!("meow");
                     let output = match (
                         self.active.get(profile_output.edid.as_ref().unwrap()),
                         self.connected.get(profile_output.edid.as_ref().unwrap()),
