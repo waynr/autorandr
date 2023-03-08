@@ -106,6 +106,10 @@ impl Config {
             .collect::<Vec<Profile>>();
 
         profiles.sort();
+        log::debug!("profiles found:");
+        for profile in &profiles {
+            log::debug!("  {0}", profile.name);
+        }
 
         Ok(Config { profiles })
     }
