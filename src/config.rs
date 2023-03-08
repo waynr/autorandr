@@ -1,7 +1,7 @@
 use std::cmp::Ordering;
 use std::collections::{BTreeMap, HashSet};
-use std::fs;
 use std::fmt;
+use std::fs;
 use std::io::Read;
 use std::path::PathBuf;
 
@@ -14,9 +14,10 @@ use crate::output::Output;
 /// Representation of a known collection of devices.
 #[derive(Deserialize, Serialize, Eq, PartialEq)]
 pub struct Profile {
-    name: String,
     pub(crate) outputs: BTreeMap<String, Output>,
 
+    #[serde(skip)]
+    name: String,
     #[serde(skip)]
     set: HashSet<String>,
 }
@@ -47,11 +48,14 @@ impl TryFrom<fs::DirEntry> for Profile {
         let path: PathBuf = de.path().into();
         match path.extension() {
             Some(ext) if ext == "yaml" || ext == "yml" => {
-                let mut file = fs::File::open(path)?;
+                let mut file = fs::File::open(&path)?;
                 let mut contents = String::new();
                 let _ = file.read_to_string(&mut contents)?;
                 let mut p: Self = serde_yaml::from_str(&contents)?;
                 p.init_set();
+                if let Some(s) = path.file_stem() {
+                    p.name = String::from(s.to_str().unwrap());
+                }
                 Ok(p)
             }
             _ => Err(Error::UnrecognizedProfileConfigFile(path)),
@@ -90,23 +94,25 @@ pub struct Config {
 impl Config {
     pub fn load() -> Result<Config> {
         let mut profiles = fs::read_dir(Config::profiles_dir()?)?
-            .filter_map(|entry| {
-                log::debug!("{:?}", entry);
-                match entry {
-                    Ok(e) => match e.try_into() {
+            .filter_map(|entry| match entry {
+                Ok(entry) => {
+                    let path = entry.path();
+                    let path_str = path.to_string_lossy();
+                    log::debug!("loading {}", &path_str);
+                    match entry.try_into() {
                         Ok(e) => Some(e),
                         Err(e) => {
-                            log::warn!("{:?}", e);
+                            log::warn!("failed to load {}:\n{:?}", &path_str, e);
                             None
                         }
-                    },
-                    _ => None,
+                    }
                 }
+                _ => None,
             })
             .collect::<Vec<Profile>>();
 
         profiles.sort();
-        log::debug!("profiles found:");
+        log::debug!("profiles loaded:");
         for profile in &profiles {
             log::debug!("  {0}", profile.name);
         }
