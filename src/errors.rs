@@ -7,7 +7,7 @@ use thiserror::Error;
 use xrandr;
 use serde_yaml;
 
-/// The Result type for ghmd.
+/// The Result type for autorandr.
 pub type Result<T> = std::result::Result<T, Error>;
 
 /// The Error type for autorandr.
