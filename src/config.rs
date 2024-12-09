@@ -15,6 +15,7 @@ use crate::output::Output;
 #[derive(Deserialize, Serialize, Eq, PartialEq)]
 pub struct Profile {
     pub(crate) outputs: BTreeMap<String, Output>,
+    pub(crate) profile_name: Option<String>,
 
     #[serde(skip)]
     name: String,
@@ -27,6 +28,10 @@ impl Profile {
     pub fn is_available(&self, available_edids: &HashSet<String>) -> bool {
         log::debug!("{:?}", self.set);
         self.set.is_subset(available_edids)
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_str()
     }
 }
 
@@ -53,7 +58,9 @@ impl TryFrom<fs::DirEntry> for Profile {
                 let _ = file.read_to_string(&mut contents)?;
                 let mut p: Self = serde_yaml::from_str(&contents)?;
                 p.init_set();
-                if let Some(s) = path.file_stem() {
+                if let Some(ref s) = p.profile_name {
+                    p.name = s.clone();
+                } else if let Some(s) = path.file_stem() {
                     p.name = String::from(s.to_str().unwrap());
                 }
                 Ok(p)
