@@ -62,6 +62,17 @@ pub enum Error {
     #[error("invalid monitor data: {0}")]
     UnrecognizedMonitorConfigFile(PathBuf),
 
+    #[error("too many active monitors for mirror mode")]
+    MirrorModeTooManyActiveMonitors,
+
+    #[error("at least one active monitor required!")]
+    NoActiveMonitors,
+
+    #[error("must have a profile named \"mirror\" for mirror mode")]
+    MirrorModeMissingProfile,
+
+    #[error("monitor '{0}' does not have resolution mode compatible with active monitor")]
+    MirrorModeIncompatibleResolution(String),
 }
 
 impl From<Infallible> for Error {

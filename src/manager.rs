@@ -155,4 +155,71 @@ impl Manager {
             _ => Err(Error::SubprocessUnknownFailure(cmdline)),
         }
     }
+
+    pub fn mirror(&self) -> Result<()> {
+        let mut cmd = Exec::cmd("xrandr").stderr(Redirection::Merge);
+        for output in &self.disconnected {
+            match &output.output_name {
+                Some(name) => {
+                    cmd = cmd.arg("--output").arg(&name).arg("--off");
+                }
+                None => (),
+            };
+        }
+
+        let mirror_profile_output = self
+            .config
+            .profiles
+            .iter()
+            .find_map(|p| {
+                if p.name() == "mirror" {
+                    Some(p.outputs.get("all-monitors").unwrap())
+                } else {
+                    None
+                }
+            })
+            .ok_or(Error::MirrorModeMissingProfile)?;
+
+        let mut actives = self.active.iter();
+        let active = if let Some((_edid, output)) = actives.next() {
+            output
+        } else {
+            return Err(Error::NoActiveMonitors);
+        };
+
+        cmd = cmd
+            .arg("--output")
+            .arg(active.output_name.as_ref().unwrap());
+        log::debug!("{:?}", mirror_profile_output.get_args());
+        cmd = cmd.args(&mirror_profile_output.get_args());
+
+        if actives.next().is_some() {
+            return Err(Error::MirrorModeTooManyActiveMonitors);
+        }
+
+        for (_edid, output) in &self.connected {
+            // TODO: fail if all available monitors do not have the same resolution as the current active
+            // monitor
+            cmd = cmd
+                .arg("--output")
+                .arg(output.output_name.as_ref().unwrap());
+            log::debug!("{:?}", mirror_profile_output.get_args());
+            cmd = cmd.args(&mirror_profile_output.get_args());
+        }
+
+        let cmdline = cmd.to_cmdline_lossy();
+        let capture_data = cmd.capture()?;
+        match capture_data.exit_status {
+            ExitStatus::Exited(0) => {
+                log::info!("'{}' succeeded", cmdline);
+                Ok(())
+            }
+            ExitStatus::Exited(s) => {
+                log::debug!("{}", str::from_utf8(&capture_data.stderr)?);
+                Err(Error::SubprocessFailed(cmdline, s))
+            }
+            ExitStatus::Signaled(s) => Err(Error::SubprocessKilledBySignal(cmdline, s)),
+            _ => Err(Error::SubprocessUnknownFailure(cmdline)),
+        }
+    }
 }

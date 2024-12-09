@@ -14,6 +14,11 @@ fn reconcile(mgr: Manager, _: &clap::ArgMatches) -> Result<()> {
     Ok(())
 }
 
+fn mirror(mgr: Manager, _: &clap::ArgMatches) -> Result<()> {
+    mgr.mirror()?;
+    Ok(())
+}
+
 fn profiles(mgr: Manager, _: &clap::ArgMatches) -> Result<()> {
     mgr.profiles();
     Ok(())
@@ -31,6 +36,7 @@ fn cli() -> Result<clap::Command> {
         .subcommands(vec![
             clap::Command::new("list").about("list active, connected, and disconnected outputs"),
             clap::Command::new("reconcile").about("automatically choose from available profiles based on avaliable monitors"),
+            clap::Command::new("mirror").about("automatically current main display onto available monitor"),
             clap::Command::new("profiles").about("show available profiles"),
         ]))
 }
@@ -70,6 +76,9 @@ fn main() -> Result<()> {
         }
         Some(("reconcile", subm)) => {
             reconcile(mgr, subm)
+        }
+        Some(("mirror", subm)) => {
+            mirror(mgr, subm)
         }
         Some((c, _)) => {
             println!("{}", cmd.render_usage());

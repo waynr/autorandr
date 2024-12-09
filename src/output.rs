@@ -3,7 +3,7 @@ use std::fmt;
 
 use hex::encode;
 use serde::{Deserialize, Serialize};
-use xrandr::{Output as XRandrOutput, PropertyValue};
+use xrandr::{Output as XRandrOutput, Value};
 
 /// A display device representation.
 #[derive(Debug, Deserialize, Serialize, Eq, PartialEq, Ord, PartialOrd)]
@@ -35,7 +35,7 @@ impl From<&XRandrOutput> for Output {
             output_name: Some(String::from(o.name.clone())),
             edid: match o.properties.get("EDID") {
                 Some(p) => match &p.value {
-                    PropertyValue::Edid(v) => Some(encode(v)),
+                    Value::Edid(v) => Some(encode(v)),
                     _ => None,
                 },
                 None => None,

@@ -17,7 +17,7 @@ path = "src/main.rs"
 [dependencies]
 
 subprocess = "0.2"
-xrandr = "0.1.1"
+xrandr = "0.2.0"
 
 sha2 = "0.10"
 hex = "0.4"
